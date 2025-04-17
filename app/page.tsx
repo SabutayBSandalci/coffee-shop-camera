@@ -1,103 +1,262 @@
-import Image from "next/image";
+"use client"
 
-export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+import { useEffect, useRef, useState } from 'react'
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
+interface CameraState {
+  isLoading: boolean
+  showPreview: boolean
+  capturedImage: string | null
+}
+
+export default function CameraApp() {
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const [state, setState] = useState<CameraState>({
+    isLoading: true,
+    showPreview: false,
+    capturedImage: null
+  })
+  const [loadingMessage, setLoadingMessage] = useState('Kamera başlatılıyor...')
+  const retryCount = useRef(0)
+  const maxRetries = 3
+
+  const initializeCamera = async () => {
+    try {
+      setLoadingMessage('Kamera izni bekleniyor...')
+
+      // Mevcut stream'i temizle
+      if (videoRef.current?.srcObject) {
+        const tracks = (videoRef.current.srcObject as MediaStream).getTracks()
+        tracks.forEach(track => track.stop())
+      }
+
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          width: { ideal: 1080 },
+          height: { ideal: 1080 },
+          facingMode: 'user'
+        }
+      })
+
+      setLoadingMessage('Kamera başlatılıyor...')
+
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream
+
+        // Video hazır olana kadar bekle
+        await new Promise((resolve, reject) => {
+          if (!videoRef.current) return reject('Video elementi bulunamadı')
+
+          videoRef.current.onloadedmetadata = async () => {
+            try {
+              await videoRef.current?.play()
+              resolve(true)
+            } catch (err) {
+              reject(err)
+            }
+          }
+
+          // Timeout ekle
+          setTimeout(() => {
+            reject('Video yükleme zaman aşımı')
+          }, 10000) // 10 saniye timeout
+        })
+
+        // Başarılı
+        retryCount.current = 0
+        setLoadingMessage('Kamera hazır!')
+      }
+    } catch (error) {
+      console.error('Kamera başlatma hatası:', error)
+      
+      // Yeniden deneme mantığı
+      if (retryCount.current < maxRetries) {
+        retryCount.current++
+        setLoadingMessage(`Kamera yeniden başlatılıyor... (Deneme ${retryCount.current}/${maxRetries})`)
+        await new Promise(resolve => setTimeout(resolve, 1000))
+        return initializeCamera()
+      } else {
+        setLoadingMessage('Kamera başlatılamadı. Lütfen sayfayı yenileyin.')
+      }
+    }
+  }
+
+  useEffect(() => {
+    let timeoutId: NodeJS.Timeout
+
+    // Hemen kamerayı başlat
+    initializeCamera()
+
+    // 2 saniye sonra loading ekranını kaldır
+    timeoutId = setTimeout(() => {
+      setState(prev => ({ ...prev, isLoading: false }))
+    }, 2000)
+
+    return () => {
+      clearTimeout(timeoutId)
+      if (videoRef.current?.srcObject) {
+        const tracks = (videoRef.current.srcObject as MediaStream).getTracks()
+        tracks.forEach(track => track.stop())
+      }
+    }
+  }, [])
+
+  const capturePhoto = () => {
+    if (!videoRef.current || !canvasRef.current) return
+
+    const video = videoRef.current
+    const canvas = canvasRef.current
+    
+    // Video elementinin görünen boyutlarını al
+    const videoElement = videoRef.current
+    const videoRect = videoElement.getBoundingClientRect()
+    
+    // Canvas boyutlarını video görüntüsüyle eşitle
+    const size = Math.min(videoRect.width, videoRect.height)
+    canvas.width = size
+    canvas.height = size
+    
+    const context = canvas.getContext('2d')
+    if (!context) return
+    
+    // Video görüntüsünün merkezini al
+    const sx = (video.videoWidth - video.videoHeight) / 2
+    const sy = 0
+    const sSize = video.videoHeight
+
+    // Ayna görüntüsü için
+    context.scale(-1, 1)
+    context.drawImage(
+      video,
+      sx, sy, sSize, sSize, // Kaynak koordinatları
+      -canvas.width, 0, canvas.width, canvas.height // Hedef koordinatları
+    )
+    context.scale(-1, 1)
+    
+    const imageData = canvas.toDataURL('image/jpeg', 1.0)
+    setState(prev => ({
+      ...prev,
+      showPreview: true,
+      capturedImage: imageData
+    }))
+  }
+
+  const handlePrint = () => {
+    if (!state.capturedImage) return
+
+    const printWindow = window.open('', '_blank')
+    if (printWindow) {
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>Fotoğraf Baskısı</title>
+            <style>
+              @page {
+                size: 89mm 89mm; /* Kare sticker boyutu */
+                margin: 0;
+              }
+              body {
+                margin: 0;
+                padding: 0;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                background: white;
+              }
+              img {
+                width: 89mm;
+                height: 89mm;
+                object-fit: cover;
+                display: block;
+              }
+              @media print {
+                html, body {
+                  width: 89mm;
+                  height: 89mm;
+                  margin: 0;
+                  padding: 0;
+                }
+                img {
+                  position: fixed;
+                  top: 0;
+                  left: 0;
+                  margin: 0;
+                  padding: 0;
+                }
+              }
+            </style>
+          </head>
+          <body>
+            <img 
+              src="${state.capturedImage}" 
+              onload="setTimeout(() => { window.print(); window.close(); }, 100)"
             />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+          </body>
+        </html>
+      `)
+      printWindow.document.close()
+    }
+
+    // Yazdırma sonrası kamera ekranına dön
+    setState(prev => ({
+      ...prev,
+      showPreview: false,
+      capturedImage: null
+    }))
+  }
+
+  const handleBack = () => {
+    setState(prev => ({
+      ...prev,
+      showPreview: false,
+      capturedImage: null
+    }))
+  }
+
+  return (
+    <main className="min-h-screen bg-black flex items-center justify-center">
+      <div className="camera-container">
+        <div className="fullscreen-square">
+          <video
+            ref={videoRef}
+            autoPlay
+            playsInline
+            muted
+          />
+          <canvas ref={canvasRef} className="hidden-canvas" />
+          
+          {!state.showPreview && (
+            <button className="capture-button" onClick={capturePhoto}>
+              <span className="capture-button-inner" />
+            </button>
+          )}
+
+          {state.showPreview && state.capturedImage && (
+            <div className="preview-overlay">
+              <img 
+                src={state.capturedImage} 
+                alt="Çekilen fotoğraf" 
+                className="preview-image"
+              />
+              <div className="button-group">
+                <button className="back-button" onClick={handleBack}>
+                  Geri
+                </button>
+                <button className="print-button" onClick={handlePrint}>
+                  Onayla
+                </button>
+              </div>
+            </div>
+          )}
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
-  );
+      </div>
+
+      {state.isLoading && (
+        <div className="loading-screen">
+          <div className="loading-spinner"></div>
+          <p>{loadingMessage}</p>
+        </div>
+      )}
+    </main>
+  )
 }
