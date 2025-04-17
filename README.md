@@ -1,36 +1,56 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 📸 Coffee Shop Camera
 
-## Getting Started
+**Coffee Shop Camera** is a smart camera-based analytics tool designed for coffee shops to enhance customer experience and operational efficiency. Built with Next.js 13 and TypeScript, this project is the foundation for future AI-driven insights into customer behavior and in-store activity.
 
-First, run the development server:
+## 🚀 Planned Features
+
+- 🎥 Real-time video streaming  
+- 🧠 AI-powered customer behavior analysis  
+- 📊 Sales and engagement reporting  
+- 🔒 Secure data handling and privacy protection
+
+## 🛠️ Technologies
+
+- **Frontend:** Next.js 13, TypeScript  
+- **Styling:** Tailwind CSS  
+- **Font:** Geist (optimized by Vercel)
+
+## ⚙️ Installation
+
+To run the project locally, follow these steps:
 
 ```bash
+git clone https://github.com/SabutayBSandalci/coffee-shop-camera.git
+cd coffee-shop-camera
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Then, open your browser and visit `http://localhost:3000`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 📁 Project Structure
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+coffee-shop-camera/
+├── app/                 # Pages and components
+├── public/              # Static assets
+├── styles/              # Global styles
+├── next.config.ts       # Next.js configuration
+├── tsconfig.json        # TypeScript configuration
+└── README.md            # Project description
+```
 
-## Learn More
+## 📌 Notes
 
-To learn more about Next.js, take a look at the following resources:
+This project is currently under development. AI integrations and advanced analytics will be implemented in future versions. Feel free to contribute or share your suggestions.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## ✍️ Developer
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Developed by **Sabutay Batuhan Sandalcı**.
 
-## Deploy on Vercel
+- **GitHub:** [SabutayBSandalci](https://github.com/SabutayBSandalci)  
+- **LinkedIn:** [https://www.linkedin.com/in/sabutay-batuhan-sandalci/](https://www.linkedin.com/in/sabutay-batuhan-sandalci/)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 📄 License
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+This project is licensed under the MIT License. For more information, see the `LICENSE` file.
