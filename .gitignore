@@ -39,3 +39,12 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# VSCode klasörü (projeye özel ayarlar içeriyorsa eklenebilir)
+.vscode/
+
+# Mac OS trash klasörü
+.Trashes
+
+# Linux/Mac swap dosyaları
+*.swp
